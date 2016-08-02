@@ -17,7 +17,7 @@ module AzkabanScheduler
         end
         raise AzkabanError, error_message
       end
-      new(client, result['session.id'], response_cookies(response['set-cookie']))
+      new(client, result['session.id'], response['set-cookie'])
     end
 
     def initialize(client, id, cookies)
@@ -76,7 +76,7 @@ module AzkabanScheduler
         'delete' => 'true',
       }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess) || response.kind_of?(Net::HTTPRedirection)
-      cookies = response_cookies(response)
+      cookies = self.class.response_cookies(response)
       unless cookies['azkaban.success.message']
         error_message = cookies['azkaban.failure.message']
         if error_message == "Project #{project_name} doesn't exist."
@@ -181,7 +181,7 @@ module AzkabanScheduler
 
     private
 
-    def response_cookies(response)
+    def self.response_cookies(response)
       response['Set-Cookie'].split(',').each_with_object({}) do |cookie, hash|
         name, value = cookie.split(';')[0].split('=', 2)
         value = value.to_s.strip
@@ -191,7 +191,7 @@ module AzkabanScheduler
     end
 
     def session_id_cookie
-      { 'Cookie' => "azkaban.browser.session.id=#{@id}" }.merge(@cookies)
+      { 'Cookie' => @cookies }
     end
   end
 end
