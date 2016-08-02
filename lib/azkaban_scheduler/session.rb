@@ -17,12 +17,13 @@ module AzkabanScheduler
         end
         raise AzkabanError, error_message
       end
-      new(client, result['session.id'])
+      new(client, result['session.id'], response_cookies(response['set-cookie']))
     end
 
-    def initialize(client, id)
+    def initialize(client, id, cookies)
       @client = client
       @id = id
+      @cookies = cookies
     end
 
     def create_project(project)
@@ -31,7 +32,7 @@ module AzkabanScheduler
         'action' => 'create',
         'name' => project.name,
         'description' => project.description,
-      })
+      }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess)
       result = JSON.parse(response.body)
       if result['status'] != 'success'
@@ -54,7 +55,7 @@ module AzkabanScheduler
         'ajax' => 'upload',
         'project' => project.name,
         'file' => UploadIO.new(project.build, 'application/zip', 'file.zip'),
-      })
+      }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess)
       result = JSON.parse(response.body)
       if error_message = result['error']
@@ -73,7 +74,7 @@ module AzkabanScheduler
         'session.id' => @id,
         'project' => project_name,
         'delete' => 'true',
-      })
+      }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess) || response.kind_of?(Net::HTTPRedirection)
       cookies = response_cookies(response)
       unless cookies['azkaban.success.message']
@@ -101,7 +102,7 @@ module AzkabanScheduler
         'session.id' => @id,
         'ajax' => 'fetchprojectflows',
         'project' => project_name,
-      })
+      }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess)
       JSON.parse(response.body)
     end
@@ -114,7 +115,7 @@ module AzkabanScheduler
         'flow' => flow_id,
         'start' => offset,
         'length' => limit,
-      })
+      }, session_id_cookie)
       response.error! unless response.kind_of?(Net::HTTPSuccess)
       JSON.parse(response.body)
     end
@@ -190,7 +191,7 @@ module AzkabanScheduler
     end
 
     def session_id_cookie
-      { 'Cookie' => "azkaban.browser.session.id=#{@id}" }
+      { 'Cookie' => "azkaban.browser.session.id=#{@id}" }.merge(@cookies)
     end
   end
 end
