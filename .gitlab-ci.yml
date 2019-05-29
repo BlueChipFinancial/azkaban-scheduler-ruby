@@ -1,0 +1,15 @@
+rspec:
+  before_script:
+    - bundle install
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - vendor/bundle
+  coverage: '/\(\d+.\d+\%\) covered/'
+  image: bluechipfinancial/ruby-2.1.1
+  script:
+    - bundle exec rake spec
+  stage: test
+  variables:
+    BUNDLE_PATH:  vendor/bundle
+    BUNDLE_RETRY: 3
